@@ -1,9 +1,11 @@
-const {
-    GoogleGenerativeAI,
-    HarmCategory,
-    HarmBlockThreshold,
-  } = require("@google/generative-ai");
+//const {
+//    GoogleGenerativeAI,
+//    HarmCategory,
+//    HarmBlockThreshold,
+//  } = require("@google/generative-ai");
   
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
   const apiKey = import.meta.env.VITE_GOOGLE_AI_API_KEY;
   const genAI = new GoogleGenerativeAI(apiKey);
   
@@ -16,7 +18,7 @@ const {
     topP: 0.95,
     topK: 64,
     maxOutputTokens: 8192,
-    responseMimeType: "text/plain",
+    responseMimeType: "application/json",
   };
   
 
