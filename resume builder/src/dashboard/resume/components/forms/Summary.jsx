@@ -1,103 +1,110 @@
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { ResumeInfoContext } from '@/context/ResumeInfoContext'
-import React, { useContext, useEffect, useState } from 'react'
-import Globalapi from './../../../../../service/Globalapi'
-import { useParams } from 'react-router-dom'
-import { Brain, LoaderCircle } from 'lucide-react'
-import { toast } from 'sonner'
-import { AIChatSession } from './../../../../../service/AIModel'
+import { Button } from '@/components/ui/button';
+import { ResumeInfoContext } from '@/context/ResumeInfoContext';
+import React, { useContext, useEffect, useState } from 'react';
+import { Brain, LoaderCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import RichTextEditor from '../RichTextEditor'; // Adjust the import path as needed
+import Globalapi from './../../../../../service/Globalapi';
+import { useParams } from 'react-router-dom';
+import { AIChatSession } from './../../../../../service/AIModel';
 
-const prompt="JobTitle: {jobTitle} , Depends on job title give a summary for resume with in 4-5 lines in JSON format with field experience Level and Summary with Experience level for Fresher, Mid-Level, Experienced"
+const prompt = "JobTitle: {jobTitle} , Depends on job title give a summary for resume with in 4-5 lines in JSON format with field experience Level and Summary with Experience level for Fresher, Mid-Level, Experienced"
 
-function Summary({enabledNext}) {
+function Summary({ enabledNext }) {
 
-    const {resumeInfo,setResumeInfo}=useContext(ResumeInfoContext);
-    const [summary,setSummary]=useState();
-    const [loading,setLoading]=useState(false);
-    const params=useParams();
-    const [aiGeneratedSummaryList,setAiGenerateSummaryList]=useState();
-    
-    useEffect(()=>{
-        summary&&setResumeInfo({
-            ...resumeInfo,
-            summary:summary
-        })
-    },[summary])
+    const { resumeInfo, setResumeInfo } = useContext(ResumeInfoContext);
+    const [summary, setSummary] = useState(resumeInfo?.summary || '');
+    const [loading, setLoading] = useState(false);
+    const params = useParams();
+    const [aiGeneratedSummaryList, setAiGenerateSummaryList] = useState([]);
 
-    const GenerateSummaryFromAI=async()=>{
-        setLoading(true)
-        const PROMPT=prompt.replace('{jobTitle}',resumeInfo?.jobTitle);
+    useEffect(() => {
+        if (summary) {
+            setResumeInfo({
+                ...resumeInfo,
+                summary: summary
+            });
+        }
+    }, [summary]);
+
+    const GenerateSummaryFromAI = async () => {
+        setLoading(true);
+        const PROMPT = prompt.replace('{jobTitle}', resumeInfo?.jobTitle);
         console.log(PROMPT);
-        const result=await AIChatSession.sendMessage(PROMPT);
-        console.log(JSON.parse(result.response.text()))
-        setAiGenerateSummaryList(JSON.parse([result.response.text()]))
-        setLoading(false);
+        
+        const result = await AIChatSession.sendMessage(PROMPT);
+        const responseText = await result.response.text();
+        
+        console.log('Raw response:', responseText); // Log the raw response
 
+        // Attempt to clean up and parse the response
+        try {
+            const parsedResponse = JSON.parse(responseText);
+            setAiGenerateSummaryList(parsedResponse);
+        } catch (error) {
+            console.error("Error parsing response:", error);
+            toast("Failed to parse AI response");
+        }
+        
+        setLoading(false);
     }
 
-    const onSave=(e)=>{
+    const onSave = async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        const data={
-            data:{
-                summary:summary
+        const data = {
+            data: {
+                summary: summary
             }
         }
 
-        Globalapi.UpdateResumeDetail(params?.resumeID,data).then(resp=>{
+        try {
+            const resp = await Globalapi.UpdateResumeDetail(params?.resumeID, data);
             console.log(resp);
             enabledNext(true);
+            toast("Details Updated");
+        } catch (error) {
+            console.error("Error updating resume details:", error);
+            toast("Failed to update details");
+        } finally {
             setLoading(false);
-            toast("Details Updated")
-        },(error)=>{
-            setLoading(false);
-        })
+        }
     }
 
-  return (
-    <div>
-        <div className='p-5 shadow-lg rounded-lg border-t-primary border-t-4 mt-10'>
-        <h2 className='font-bold text-lg'>Summary</h2>
-        <p>Add summary to your jobTitle</p>
+    return (
+        <div>
+            <div className='p-5 shadow-lg rounded-lg border-t-primary border-t-4 mt-10'>
+                <h2 className='font-bold text-lg'>Summary</h2>
+                <p>Add summary to your job title</p>
 
-            <form className='mt-7' onSubmit={onSave}>
-                <div className='flex justify-between items-end'>
-                    <label>Add label</label>
-                    <Button onClick={()=>GenerateSummaryFromAI()} type="button" variant="outline" size="sm" className="border-primary text-primary flex gap-2">
-                        <Brain className='h-4 w-4'/> Generate from AI</Button>
-                </div>
-                <Textarea className='mt-5' required
-                value={summary}
-                    defaultValue={summary?summary:resumeInfo?.summary}
-                onChange={(e)=>setSummary(e.target.value)} />
+                <form className='mt-7' onSubmit={onSave}>
+                    
+                    <div className='mt-5'>
+                        <RichTextEditor index={0} value={summary} onRichTextEditorChange={(e) => setSummary(e.target.value)} />
+                    </div>
 
-                <div className='mt-2 flex justify-end'>
-                <Button type="submit"
-                disabled={loading}>
-                    {loading?<LoaderCircle className='animate-spin'/>:'Save'}</Button>
-                </div>
+                    <div className='mt-2 flex justify-end'>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? <LoaderCircle className='animate-spin' /> : 'Save'}
+                        </Button>
+                    </div>
+                </form>
+            </div>
 
-            </form>
-
+            {aiGeneratedSummaryList.length > 0 && <div className='my-5'>
+                <h2 className='font-bold text-lg'>Suggestions</h2>
+                {aiGeneratedSummaryList.map((item, index) => (
+                    <div key={index}
+                        onClick={() => setSummary(item?.summary)}
+                        className='p-5 shadow-lg my-4 rounded-lg cursor-pointer'>
+                        <h2 className='font-bold my-1 text-primary'>Level: {item?.experience_level}</h2>
+                        <p>{item?.summary}</p>
+                    </div>
+                ))}
+            </div>}
         </div>
-
-         
-       {aiGeneratedSummaryList && <div className='my-5'>
-            <h2 className='font-bold text-lg'>Suggestions</h2>
-            {aiGeneratedSummaryList?.map((item,index)=>(
-                <div key={index} 
-                onClick={()=>setSummary(item?.summary)}
-                className='p-5 shadow-lg my-4 rounded-lg cursor-pointer'>
-                    <h2 className='font-bold my-1 text-primary'>Level: {item?.experience_level}</h2>
-                    <p>{item?.summary}</p>
-                </div>
-            ))}
-        </div>}
-
-    </div>
-  )
+    )
 }
 
-export default Summary
+export default Summary;
