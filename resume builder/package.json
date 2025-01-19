@@ -20,6 +20,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.395.0",
     "next-themes": "^0.3.0",
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-loader-spinner": "^6.1.6",
@@ -27,7 +28,7 @@
     "react-simple-wysiwyg": "^3.0.3",
     "react-spinners": "^0.14.1",
     "react-web-share": "^2.0.2",
-    "sonner": "^1.5.0",
+    "sonner": "^1.7.2",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^10.0.0"
